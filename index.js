@@ -4,36 +4,56 @@ const puppeteer = require('puppeteer');
 const notifier = require('node-notifier');
 function sendNotification(update) {
 // String
-    notifier.notify('EMBAJADA!!');
+    notifier.notify('SURAA!!');
 
 // Object
     notifier.notify({
-        title: 'LUGAR EMBAJADA',
+        title: 'Update taller',
         message: update,
         sound: true
     });
 }
 
 var timeExecuted = 0;
+var failures = 0;
 async function doTheMagic(){
-        const browser = await puppeteer.launch({ headless: false,slowMo: 10 });
-        const page = await browser.newPage();
-        await page.goto("https://ais.usvisa-info.com/en-ie/niv/users/sign_in");
-        await page.type("#user_email","cafu1995@hotmail.com");
-        await page.type("#user_password","windows95");
-        await page.click("#policy_confirmed");
-        await page.click("input.button.primary");
-        await page.goto("https://ais.usvisa-info.com/en-ie/niv/schedule/33443399/payment");
-        await page.waitForTimeout(4000);
-        const found = await page.evaluate(() => window.find("No Appointments Available"));
-        await console.log("HAY LUGARES?",!found);
-        if(!found){
-            sendNotification("HAY LUGAR")
+    const browser = await puppeteer.launch({ headless: true,slowMo: 10 });
+    const page = await browser.newPage();
+    await page.setViewport({
+        width: 1920,
+        height: 1080
+    });
+    let currentdate = new Date();
+    let datetime = currentdate.getDate() + "-" + (currentdate.getMonth()+1)
+    + "-" + currentdate.getFullYear() + "@" 
+    + currentdate.getHours() + ":" 
+    + currentdate.getMinutes() + ":" + currentdate.getSeconds();
+
+    try{
+        await page.goto("https://www.segurossura.com.uy/mi-escritorio/login");
+        await page.type("#email","laurenzanoster@gmail.com");
+        await page.type("#password","Vamonosotros1995!");
+        const loginButtn = await page.$x('//*[@id="rootEscritorio"]/div/div[2]/div/div/div/div[3]/button');
+        await loginButtn[0].click(); 
+        await page.waitForTimeout(2000);
+        await page.goto("https://www.segurossura.com.uy/mi-escritorio/sinisters/1577903");
+        await page.waitForSelector('.InsuranceSinister-titleWrap');
+
+        const sinHitos =  await page.evaluate(() => window.find("Sin hitos registrados"));
+        console.log("Nuevo hito?",!sinHitos);
+        if(!sinHitos){
+            sendNotification("Nuevo Hito!!")
         }
+        await page.screenshot({ path: `${!sinHitos ? 'novedades' : 'nada'}/sura-screenshot-${datetime}.png` });
+    } catch(e){
+        await page.screenshot({ path: `crash/crash-sura-screenshot-${datetime}.png` });
+        failures++;
+        console.log("Well it failed, times filed:",failures);
+    }
 }
 doTheMagic();
 const schedule = require('node-schedule');
-var job = schedule.scheduleJob('0 */4 * * *', function(){
+var job = schedule.scheduleJob('*/5 * * * *', function(){
     timeExecuted++;
     console.log('Times Executed: ',timeExecuted);
     doTheMagic();
